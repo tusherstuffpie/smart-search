@@ -1,0 +1,18 @@
+{
+    "openai": {
+        "api_key": "your-openai-api-key",
+        "model": "gpt-4-turbo-preview"
+    },
+    "postgresql": {
+        "dsn": "postgres://user:password@localhost:5432/smartsearch?sslmode=disable"
+    },
+    "opensearch": {
+        "url": "http://localhost:9200",
+        "username": "admin",
+        "password": "admin"
+    },
+    "server": {
+        "port": 8080,
+        "host": "localhost"
+    }
+} 
