@@ -8,6 +8,7 @@ import (
 	"smartsearch/internal/search"
 	"smartsearch/internal/vector"
 	"smartsearch/pkg/models"
+	"sync"
 	"time"
 
 	"github.com/sashabaranov/go-openai"
@@ -50,14 +51,34 @@ func (s *Service) Search(ctx context.Context, req models.SearchRequest) (*models
     }
 
     // 3. Parallel search using both vector and keyword search
-    vectorResults, err := s.vectorStore.Search(ctx, req.Query, req.TopK*2)
-    if err != nil {
-        return nil, fmt.Errorf("failed to perform vector search: %w", err)
+    var (
+        vectorResults  []models.SearchResult
+        keywordResults []models.SearchResult
+        vectorErr      error
+        keywordErr     error
+    )
+
+    var wg sync.WaitGroup
+    wg.Add(2)
+
+    go func() {
+        defer wg.Done()
+        vectorResults, vectorErr = s.vectorStore.Search(ctx, req.Query, req.TopK*2)
+    }()
+
+    go func() {
+        defer wg.Done()
+        keywordResults, keywordErr = s.searchClient.Search(ctx, req.Query, req.TopK*2)
+    }()
+
+    wg.Wait()
+
+    if vectorErr != nil {
+        return nil, fmt.Errorf("failed to perform vector search: %w", vectorErr)
     }
 
-    keywordResults, err := s.searchClient.Search(ctx, req.Query, req.TopK*2)
-    if err != nil {
-        return nil, fmt.Errorf("failed to perform keyword search: %w", err)
+    if keywordErr != nil {
+        return nil, fmt.Errorf("failed to perform keyword search: %w", keywordErr)
     }
 
     // 4. Merge and deduplicate results
