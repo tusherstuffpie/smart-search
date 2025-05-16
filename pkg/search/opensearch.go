@@ -125,12 +125,4 @@ func (c *OpenSearchClient) DeleteTool(ctx context.Context, toolID string) error 
 	}
 
 	return nil
-}
-
-func mustMarshal(v interface{}) string {
-	b, err := json.Marshal(v)
-	if err != nil {
-		panic(err)
-	}
-	return string(b)
 } 

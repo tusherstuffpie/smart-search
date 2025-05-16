@@ -1,0 +1,1351 @@
+{
+    "tools": [
+        {
+            "id": "gmail_send_email_v1.2",
+            "name": "Gmail: Send Email",
+            "description": "Sends an email using a Gmail account. Requires authentication and recipient details. Supports HTML and attachments.",
+            "category": "Communication",
+            "tags": ["email", "gmail", "send", "communication", "google", "notification"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "to": { "type": "string", "description": "Recipient email address." },
+                    "subject": { "type": "string", "description": "Subject of the email." },
+                    "body": { "type": "string", "description": "Content of the email (HTML or plain text)." },
+                    "attachments": { "type": "array", "items": { "type": "string", "description": "File paths or URLs of attachments." } }
+                },
+                "required": ["to", "subject", "body"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean", "description": "True if the email was sent successfully." },
+                    "messageId": { "type": "string", "description": "The ID of the sent email message." },
+                    "error": { "type": "string", "description": "Error message if sending failed." }
+                }
+            },
+            "version": "1.3.2"
+        },
+        {
+            "id": "slack_send_channel_message_v2.1",
+            "name": "Slack: Send Channel Message",
+            "description": "Posts a message to a specified Slack channel. Supports formatting and mentions.",
+            "category": "Communication",
+            "tags": ["slack", "chat", "messaging", "team", "communication", "collaboration"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "channelId": { "type": "string", "description": "ID of the channel to send the message to." },
+                    "text": { "type": "string", "description": "The message content, can include markdown." },
+                    "as_user": { "type": "boolean", "description": "Send as authenticated user or bot.", "default": false },
+                    "thread_ts": { "type": "string", "description": "Timestamp of a parent message to reply in a thread." }
+                },
+                "required": ["channelId", "text"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "ok": { "type": "boolean" },
+                    "ts": { "type": "string", "description": "Timestamp of the message." },
+                    "channel": { "type": "string" },
+                    "error": { "type": "string", "description": "Error message if sending failed." }
+                }
+            },
+            "version": "2.1.5"
+        },
+        {
+            "id": "twilio_send_sms_v1.0.1",
+            "name": "Twilio: Send SMS",
+            "description": "Sends an SMS message to a phone number using Twilio API.",
+            "category": "Communication",
+            "tags": ["sms", "twilio", "messaging", "text", "notification"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "to_phone_number": { "type": "string", "description": "Recipient phone number in E.164 format." },
+                    "from_phone_number": { "type": "string", "description": "Twilio phone number in E.164 format." },
+                    "body": { "type": "string", "description": "The text of the SMS message (max 1600 characters)." }
+                },
+                "required": ["to_phone_number", "from_phone_number", "body"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "sid": { "type": "string", "description": "The unique ID of the SMS message." },
+                    "status": { "type": "string", "description": "Status of the SMS (e.g., 'queued', 'sent', 'failed')." },
+                    "error_message": { "type": "string", "description": "Error message if sending failed." }
+                }
+            },
+            "version": "1.0.1"
+        },
+        {
+            "id": "dropbox_upload_file_v2.1",
+            "name": "Dropbox: Upload File",
+            "description": "Uploads a file to a specified path in Dropbox. Supports overwrite options.",
+            "category": "File Management",
+            "tags": ["dropbox", "file", "storage", "upload", "cloud", "backup"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "local_file_path": { "type": "string", "description": "Path to the local file to upload." },
+                    "dropbox_path": { "type": "string", "description": "Destination path in Dropbox (e.g., '/Apps/MyApp/file.txt')." },
+                    "overwrite": { "type": "boolean", "default": false, "description": "Whether to overwrite if the file already exists." }
+                },
+                "required": ["local_file_path", "dropbox_path"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "file_id": { "type": "string", "description": "ID of the uploaded file in Dropbox." },
+                    "file_url": { "type": "string", "description": "Shareable link to the file in Dropbox." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "2.1.0"
+        },
+        {
+            "id": "google_drive_list_files_v1.2",
+            "name": "Google Drive: List Files/Folders",
+            "description": "Lists files and folders in a specified Google Drive folder. Supports querying and pagination.",
+            "category": "File Management",
+            "tags": ["google drive", "files", "list", "storage", "cloud", "documents"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "folder_id": { "type": "string", "description": "ID of the Google Drive folder. Use 'root' for the root folder.", "default": "root" },
+                    "page_size": { "type": "integer", "description": "Number of files to return per page.", "default": 100 },
+                    "query": { "type": "string", "description": "Search query string (e.g., \"name contains 'report' and mimeType='application/pdf'\")." },
+                    "pageToken": { "type": "string", "description": "Token for the next page of results." }
+                }
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string" },
+                                "name": { "type": "string" },
+                                "mimeType": { "type": "string" },
+                                "modifiedTime": { "type": "string", "format": "date-time" }
+                            }
+                        }
+                    },
+                    "nextPageToken": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.2.0"
+        },
+        {
+            "id": "salesforce_create_contact_v1.1",
+            "name": "Salesforce: Create Contact",
+            "description": "Creates a new contact record in Salesforce associated with an Account.",
+            "category": "CRM",
+            "tags": ["salesforce", "crm", "contact", "sales", "customer relationship"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "accountId": { "type": "string", "description": "ID of the Account to associate the contact with." },
+                    "firstName": { "type": "string" },
+                    "lastName": { "type": "string" },
+                    "email": { "type": "string", "format": "email" },
+                    "phone": { "type": "string" },
+                    "title": { "type": "string", "description": "Job title of the contact." }
+                },
+                "required": ["lastName", "accountId"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "contactId": { "type": "string" },
+                    "errors": { "type": "array", "items": { "type": "string" } }
+                }
+            },
+            "version": "1.1.0"
+        },
+        {
+            "id": "hubspot_get_company_v1.0",
+            "name": "HubSpot: Get Company",
+            "description": "Retrieves a company's details from HubSpot by its ID or domain.",
+            "category": "CRM",
+            "tags": ["hubspot", "crm", "company", "marketing", "b2b"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "company_id": { "type": "string", "description": "HubSpot company ID." },
+                    "domain": { "type": "string", "description": "Company's domain name (alternative to ID)." },
+                    "properties": { "type": "array", "items": { "type": "string" }, "description": "Specific properties to retrieve." }
+                }
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "id": { "type": "string" },
+                    "properties": { "type": "object", "description": "Key-value pairs of company properties." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "twitter_search_tweets_v2.1",
+            "name": "X (Twitter): Search Tweets",
+            "description": "Searches for recent tweets matching a query on X (Twitter).",
+            "category": "Social Media",
+            "tags": ["twitter", "x", "social media", "search", "tweets", "data mining"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "The search query (e.g., '#GoLang OR #Rust')." },
+                    "max_results": { "type": "integer", "default": 10, "description": "Maximum number of tweets to return." },
+                    "since_id": { "type": "string", "description": "Returns results with an ID greater than (more recent than) the specified ID." }
+                },
+                "required": ["query"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "tweets": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string" },
+                                "text": { "type": "string" },
+                                "author_id": { "type": "string" },
+                                "created_at": { "type": "string", "format": "date-time" }
+                            }
+                        }
+                    },
+                    "meta": { "type": "object", "properties": { "newest_id": { "type": "string" }, "oldest_id": { "type": "string" }, "result_count": { "type": "integer" } } },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "2.1.0"
+        },
+        {
+            "id": "facebook_get_page_insights_v1.0",
+            "name": "Facebook: Get Page Insights",
+            "description": "Retrieves insights data for a Facebook Page over a specified period.",
+            "category": "Social Media",
+            "tags": ["facebook", "social media", "analytics", "insights", "marketing"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "page_id": { "type": "string", "description": "ID of the Facebook Page." },
+                    "metrics": { "type": "array", "items": { "type": "string" }, "description": "List of metrics to retrieve (e.g., ['page_fans', 'page_impressions'])." },
+                    "since": { "type": "string", "format": "date", "description": "Start date for insights (YYYY-MM-DD)." },
+                    "until": { "type": "string", "format": "date", "description": "End date for insights (YYYY-MM-DD)." }
+                },
+                "required": ["page_id", "metrics", "since", "until"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "data": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "period": { "type": "string" },
+                                "values": { "type": "array", "items": { "type": "object" } }
+                            }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "linkedin_get_profile_v1.1",
+            "name": "LinkedIn: Get Profile",
+            "description": "Retrieves basic profile information for a LinkedIn user.",
+            "category": "Social Media",
+            "tags": ["linkedin", "social media", "professional network", "profile", "hr"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "profile_id": { "type": "string", "description": "The ID of the LinkedIn profile (can be vanity name or URN)." }
+                },
+                "required": ["profile_id"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "id": { "type": "string" },
+                    "firstName": { "type": "string" },
+                    "lastName": { "type": "string" },
+                    "headline": { "type": "string" },
+                    "summary": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.1.0"
+        },
+        {
+            "id": "github_get_repo_details_v1.1",
+            "name": "GitHub: Get Repository Details",
+            "description": "Retrieves details for a specific GitHub repository.",
+            "category": "Developer Tools",
+            "tags": ["github", "git", "repository", "developer", "source control"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "owner": { "type": "string", "description": "Owner of the repository." },
+                    "repo": { "type": "string", "description": "Name of the repository." }
+                },
+                "required": ["owner", "repo"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "id": { "type": "integer" },
+                    "name": { "type": "string" },
+                    "full_name": { "type": "string" },
+                    "description": { "type": "string" },
+                    "html_url": { "type": "string", "format": "url" },
+                    "stars": { "type": "integer" },
+                    "forks": { "type": "integer" },
+                    "language": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.1.0"
+        },
+        {
+            "id": "dockerhub_search_images_v1.0",
+            "name": "Docker Hub: Search Images",
+            "description": "Searches for Docker images on Docker Hub.",
+            "category": "Developer Tools",
+            "tags": ["docker", "dockerhub", "container", "image search", "devops"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "term": { "type": "string", "description": "Search term for Docker images." },
+                    "limit": { "type": "integer", "default": 25, "description": "Maximum number of results to return." }
+                },
+                "required": ["term"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "images": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "description": { "type": "string" },
+                                "star_count": { "type": "integer" },
+                                "is_official": { "type": "boolean" }
+                            }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "figma_export_frame_v1.2",
+            "name": "Figma: Export Frame",
+            "description": "Exports a specific frame from a Figma file as an image.",
+            "category": "Design Tools",
+            "tags": ["figma", "design", "export", "image", "ui"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "file_key": { "type": "string", "description": "The key of the Figma file." },
+                    "node_id": { "type": "string", "description": "The ID of the frame/node to export." },
+                    "format": { "type": "string", "enum": ["jpg", "png", "svg", "pdf"], "default": "png" },
+                    "scale": { "type": "number", "default": 1, "description": "Scale factor (e.g., 2 for @2x)." }
+                },
+                "required": ["file_key", "node_id"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "image_url": { "type": "string", "format": "url", "description": "URL to the exported image." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.2.0"
+        },
+        {
+            "id": "adobe_illustrator_convert_to_svg_v1.0",
+            "name": "Adobe Illustrator: Convert to SVG",
+            "description": "Converts an Adobe Illustrator file (.ai) to SVG format.",
+            "category": "Design Tools",
+            "tags": ["illustrator", "adobe", "vector", "svg", "conversion", "graphics"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "ai_file_path": { "type": "string", "description": "Path to the input .ai file." },
+                    "output_svg_path": { "type": "string", "description": "Path to save the output .svg file." }
+                },
+                "required": ["ai_file_path", "output_svg_path"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "output_file": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "google_calendar_list_events_v1.1",
+            "name": "Google Calendar: List Events",
+            "description": "Lists events from a Google Calendar within a specified time range.",
+            "category": "Productivity",
+            "tags": ["google calendar", "schedule", "event", "list", "productivity"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "calendar_id": { "type": "string", "default": "primary", "description": "ID of the calendar." },
+                    "time_min": { "type": "string", "format": "date-time", "description": "Start of the time range (ISO 8601)." },
+                    "time_max": { "type": "string", "format": "date-time", "description": "End of the time range (ISO 8601)." },
+                    "max_results": { "type": "integer", "default": 250 },
+                    "q": { "type": "string", "description": "Free text search terms." }
+                },
+                "required": ["time_min", "time_max"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string" },
+                                "summary": { "type": "string" },
+                                "start": { "type": "object" },
+                                "end": { "type": "object" }
+                            }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.1.0"
+        },
+        {
+            "id": "currency_converter_api_v1.0",
+            "name": "Currency Converter API",
+            "description": "Converts an amount from one currency to another using real-time exchange rates.",
+            "category": "Utility",
+            "tags": ["currency", "exchange rate", "finance", "api", "utility", "conversion"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "from_currency": { "type": "string", "description": "ISO 4217 currency code to convert from (e.g., 'USD')." },
+                    "to_currency": { "type": "string", "description": "ISO 4217 currency code to convert to (e.g., 'EUR')." },
+                    "amount": { "type": "number", "description": "Amount to convert." }
+                },
+                "required": ["from_currency", "to_currency", "amount"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "converted_amount": { "type": "number" },
+                    "rate": { "type": "number" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "google_translate_api_v1.0",
+            "name": "Google Translate API: Translate Text",
+            "description": "Translates text from one language to another using Google Translate API.",
+            "category": "Utility",
+            "tags": ["translate", "language", "google", "api", "nlp"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "text": { "type": "string", "description": "The text to translate." },
+                    "target_language": { "type": "string", "description": "Target language code (e.g., 'es', 'fr')." },
+                    "source_language": { "type": "string", "description": "Optional source language code. If omitted, Google attempts to detect." }
+                },
+                "required": ["text", "target_language"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "translated_text": { "type": "string" },
+                    "detected_source_language": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "openai_dalle_image_generation_v1.0",
+            "name": "OpenAI DALL-E: Image Generation",
+            "description": "Generates images from textual descriptions using OpenAI's DALL-E models.",
+            "category": "AI/LLM",
+            "tags": ["openai", "dalle", "image generation", "ai", "creative", "art"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "prompt": { "type": "string", "description": "A textual description of the desired image." },
+                    "n": { "type": "integer", "default": 1, "description": "Number of images to generate." },
+                    "size": { "type": "string", "enum": ["256x256", "512x512", "1024x1024"], "default": "1024x1024" }
+                },
+                "required": ["prompt"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "image_urls": { "type": "array", "items": { "type": "string", "format": "url" } },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "stabilityai_stable_diffusion_v1.0",
+            "name": "Stability AI: Stable Diffusion Image Generation",
+            "description": "Generates images from text prompts using Stable Diffusion models via Stability AI API.",
+            "category": "AI/LLM",
+            "tags": ["stabilityai", "stable diffusion", "image generation", "ai", "art"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "text_prompts": {
+                        "type": "array",
+                        "items": { "type": "object", "properties": { "text": { "type": "string" }, "weight": { "type": "number", "default": 1.0 } } },
+                        "description": "One or more text prompts to guide image generation."
+                    },
+                    "height": { "type": "integer", "default": 512 },
+                    "width": { "type": "integer", "default": 512 },
+                    "cfg_scale": { "type": "number", "default": 7 },
+                    "steps": { "type": "integer", "default": 50 }
+                },
+                "required": ["text_prompts"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "artifacts": {
+                        "type": "array",
+                        "items": { "type": "object", "properties": { "base64": { "type": "string" }, "seed": { "type": "integer" } } }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "shopify_create_order_v1.0",
+            "name": "Shopify: Create Order",
+            "description": "Creates a new order in a Shopify store.",
+            "category": "E-commerce",
+            "tags": ["shopify", "ecommerce", "order", "sales", "retail"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "store_domain": { "type": "string", "description": "Your Shopify store domain." },
+                    "customer_id": { "type": "string", "description": "ID of the customer placing the order." },
+                    "line_items": {
+                        "type": "array",
+                        "items": { "type": "object", "properties": { "variant_id": { "type": "string" }, "quantity": { "type": "integer" } } }
+                    },
+                    "shipping_address": { "type": "object" },
+                    "email": { "type": "string", "format": "email" }
+                },
+                "required": ["store_domain", "line_items", "email"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "order_id": { "type": "string" },
+                    "order_number": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": " Stripe_create_payment_intent_v1",
+            "name": "Stripe: Create Payment Intent",
+            "description": "Creates a PaymentIntent to track and handle the lifecycle of a payment.",
+            "category": "Payment Processing",
+            "tags": ["stripe", "payment", "finance", "ecommerce", "billing"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "amount": { "type": "integer", "description": "Amount in cents (e.g., 1000 for $10.00)." },
+                    "currency": { "type": "string", "default": "usd" },
+                    "customer_id": { "type": "string", "description": "Optional Stripe Customer ID." },
+                    "payment_method_types": { "type": "array", "items": { "type": "string" }, "default": ["card"] }
+                },
+                "required": ["amount", "currency"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "id": { "type": "string", "description": "PaymentIntent ID." },
+                    "client_secret": { "type": "string" },
+                    "status": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "zoom_create_meeting_v1.0",
+            "name": "Zoom: Create Meeting",
+            "description": "Schedules a new meeting in Zoom.",
+            "category": "Video Conferencing",
+            "tags": ["zoom", "video conference", "meeting", "remote work", "communication"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "topic": { "type": "string", "description": "Meeting topic." },
+                    "start_time": { "type": "string", "format": "date-time", "description": "Meeting start time (ISO 8601)." },
+                    "duration_minutes": { "type": "integer", "default": 30 },
+                    "timezone": { "type": "string", "description": "Timezone for the meeting (e.g., 'America/New_York')." },
+                    "agenda": { "type": "string" }
+                },
+                "required": ["topic", "start_time"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "meeting_id": { "type": "string" },
+                    "join_url": { "type": "string", "format": "url" },
+                    "start_url": { "type": "string", "format": "url", "description": "URL for host to start meeting." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "trello_create_card_v1.1",
+            "name": "Trello: Create Card",
+            "description": "Creates a new card on a Trello board in a specific list.",
+            "category": "Project Management",
+            "tags": ["trello", "project management", "task management", "kanban"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "list_id": { "type": "string", "description": "ID of the Trello list to add the card to." },
+                    "name": { "type": "string", "description": "Name/title of the card." },
+                    "desc": { "type": "string", "description": "Description for the card." },
+                    "due_date": { "type": "string", "format": "date-time", "description": "Due date for the card." }
+                },
+                "required": ["list_id", "name"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "card_id": { "type": "string" },
+                    "card_url": { "type": "string", "format": "url" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.1.0"
+        },
+        {
+            "id": "Youtube_videos_v1.0",
+            "name": "YouTube: Search Videos",
+            "description": "Searches for videos on YouTube based on a query.",
+            "category": "Media",
+            "tags": ["youtube", "video", "search", "media", "entertainment"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Search query." },
+                    "max_results": { "type": "integer", "default": 10 },
+                    "order": { "type": "string", "enum": ["relevance", "date", "viewCount", "rating"], "default": "relevance" }
+                },
+                "required": ["query"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "videos": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "video_id": { "type": "string" },
+                                "title": { "type": "string" },
+                                "description": { "type": "string" },
+                                "channel_title": { "type": "string" },
+                                "published_at": { "type": "string", "format": "date-time" }
+                            }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "google_analytics_get_report_v1.0",
+            "name": "Google Analytics: Get Report",
+            "description": "Retrieves reports from Google Analytics (GA4).",
+            "category": "Data & Analytics",
+            "tags": ["google analytics", "ga4", "reporting", "data", "web analytics"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "property_id": { "type": "string", "description": "Google Analytics GA4 Property ID (e.g., 'properties/12345')." },
+                    "date_ranges": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "start_date": { "type": "string", "format": "date", "description": "Start date in YYYY-MM-DD format." },
+                                "end_date": { "type": "string", "format": "date", "description": "End date in YYYY-MM-DD format." }
+                            }
+                        }
+                    },
+                    "dimensions": { "type": "array", "items": { "type": "string" }, "description": "List of dimensions (e.g., ['city', 'eventName'])." },
+                    "metrics": { "type": "array", "items": { "type": "string" }, "description": "List of metrics (e.g., ['activeUsers', 'eventCount'])." }
+                },
+                "required": ["property_id", "date_ranges", "dimensions", "metrics"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "report_data": { "type": "object", "description": "The report data from Google Analytics." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "aws_s3_upload_file_v1.0",
+            "name": "AWS S3: Upload File",
+            "description": "Uploads a file to an AWS S3 bucket.",
+            "category": "File Management",
+            "tags": ["aws", "s3", "cloud storage", "file upload", "backup"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "bucket_name": { "type": "string", "description": "Name of the S3 bucket." },
+                    "local_file_path": { "type": "string", "description": "Path to the local file to upload." },
+                    "s3_object_key": { "type": "string", "description": "Object key (path and filename) in S3." },
+                    "acl": { "type": "string", "enum": ["private", "public-read"], "default": "private", "description": "Access control list for the uploaded object." }
+                },
+                "required": ["bucket_name", "local_file_path", "s3_object_key"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "file_url": { "type": "string", "format": "url", "description": "URL of the uploaded file in S3." },
+                    "e_tag": { "type": "string", "description": "ETag of the uploaded object." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "zendesk_create_ticket_v1.0",
+            "name": "Zendesk: Create Ticket",
+            "description": "Creates a new support ticket in Zendesk.",
+            "category": "Customer Support",
+            "tags": ["zendesk", "customer support", "helpdesk", "ticket"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "subject": { "type": "string", "description": "Subject of the ticket." },
+                    "comment_body": { "type": "string", "description": "Initial comment body for the ticket." },
+                    "requester_email": { "type": "string", "format": "email", "description": "Email of the person requesting support." },
+                    "priority": { "type": "string", "enum": ["low", "normal", "high", "urgent"], "default": "normal" }
+                },
+                "required": ["subject", "comment_body", "requester_email"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "ticket_id": { "type": "integer" },
+                    "ticket_url": { "type": "string", "format": "url" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "wordpress_create_post_v1.0",
+            "name": "WordPress: Create Post",
+            "description": "Creates a new post on a WordPress site.",
+            "category": "Content Management",
+            "tags": ["wordpress", "cms", "blogging", "content creation"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "site_url": { "type": "string", "format": "url", "description": "Base URL of the WordPress site." },
+                    "title": { "type": "string", "description": "Title of the post." },
+                    "content": { "type": "string", "description": "HTML content of the post." },
+                    "status": { "type": "string", "enum": ["publish", "future", "draft", "pending", "private"], "default": "draft" },
+                    "categories": { "type": "array", "items": { "type": "integer" }, "description": "Array of category IDs." },
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Array of tag names." }
+                },
+                "required": ["site_url", "title", "content"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "post_id": { "type": "integer" },
+                    "post_url": { "type": "string", "format": "url" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "openweather_get_current_weather_v1.0",
+            "name": "OpenWeatherMap: Get Current Weather",
+            "description": "Fetches current weather data for a specified location.",
+            "category": "Utility",
+            "tags": ["weather", "openweather", "forecast", "location", "utility"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "city_name": { "type": "string", "description": "Name of the city." },
+                    "country_code": { "type": "string", "description": "Optional ISO 3166 country code (e.g., US, GB)." },
+                    "units": { "type": "string", "enum": ["metric", "imperial", "standard"], "default": "metric", "description": "Units of measurement." },
+                    "api_key": { "type": "string", "description": "Your OpenWeatherMap API key."}
+                },
+                "required": ["city_name", "api_key"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "weather_data": {
+                        "type": "object",
+                        "properties": {
+                            "temperature": { "type": "number" },
+                            "feels_like": { "type": "number" },
+                            "humidity": { "type": "integer" },
+                            "pressure": { "type": "integer" },
+                            "description": { "type": "string" },
+                            "wind_speed": { "type": "number" },
+                            "city": { "type": "string" },
+                            "country": { "type": "string" }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "stripe_retrieve_balance_v1.0",
+            "name": "Stripe: Retrieve Balance",
+            "description": "Retrieves the current account balance from Stripe.",
+            "category": "Payment Processing",
+            "tags": ["stripe", "payment", "finance", "balance", "accounting"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "stripe_account_id": { "type": "string", "description": "Optional ID of a connected Stripe account. If not provided, uses the platform's balance." }
+                }
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "available_balance": { "type": "array", "items": {"type": "object", "properties": {"amount": {"type": "integer"}, "currency": {"type": "string"}}}},
+                    "pending_balance": { "type": "array", "items": {"type": "object", "properties": {"amount": {"type": "integer"}, "currency": {"type": "string"}}}},
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "airtable_create_record_v1.0",
+            "name": "Airtable: Create Record",
+            "description": "Creates a new record in a specified Airtable base and table.",
+            "category": "Productivity",
+            "tags": ["airtable", "database", "spreadsheet", "productivity", "collaboration"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "base_id": { "type": "string", "description": "ID of the Airtable base." },
+                    "table_name": { "type": "string", "description": "Name or ID of the table within the base." },
+                    "fields": { "type": "object", "description": "Object containing field names and their corresponding values for the new record." }
+                },
+                "required": ["base_id", "table_name", "fields"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "record_id": { "type": "string" },
+                    "created_time": { "type": "string", "format": "date-time" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "docusign_send_envelope_v1.0",
+            "name": "DocuSign: Send Envelope for Signature",
+            "description": "Sends a document for electronic signature using DocuSign.",
+            "category": "Legal Tech",
+            "tags": ["docusign", "esignature", "contract", "legal", "document management"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "document_base64": { "type": "string", "description": "Base64 encoded content of the document to be signed." },
+                    "document_name": { "type": "string", "description": "Name of the document file (e.g., 'contract.pdf')." },
+                    "subject": { "type": "string", "description": "Email subject for the signature request." },
+                    "email_blurb": { "type": "string", "description": "Email body message for the signature request." },
+                    "recipients": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "email": { "type": "string", "format": "email" },
+                                "recipient_id": { "type": "string", "description": "Unique ID for the recipient." },
+                                "routing_order": { "type": "integer", "description": "Order in which recipient signs." }
+                            },
+                            "required": ["name", "email", "recipient_id", "routing_order"]
+                        }
+                    }
+                },
+                "required": ["document_base64", "document_name", "subject", "email_blurb", "recipients"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "envelope_id": { "type": "string" },
+                    "status": { "type": "string", "description": "Status of the envelope (e.g., 'sent', 'created')." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "github_create_issue_v1.0",
+            "name": "GitHub: Create Issue",
+            "description": "Creates a new issue in a GitHub repository.",
+            "category": "Developer Tools",
+            "tags": ["github", "issue tracking", "developer tools", "project management"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "owner": { "type": "string", "description": "Owner of the repository." },
+                    "repo": { "type": "string", "description": "Name of the repository." },
+                    "title": { "type": "string", "description": "Title of the issue." },
+                    "body": { "type": "string", "description": "Content of the issue." },
+                    "labels": { "type": "array", "items": { "type": "string" }, "description": "Array of label names." },
+                    "assignees": { "type": "array", "items": { "type": "string" }, "description": "Array of GitHub usernames to assign." }
+                },
+                "required": ["owner", "repo", "title"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "issue_id": { "type": "integer" },
+                    "issue_url": { "type": "string", "format": "url" },
+                    "number": { "type": "integer", "description": "Issue number within the repository." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "Maps_get_directions_v1.0",
+            "name": "Google Maps: Get Directions",
+            "description": "Provides directions between two locations using Google Maps.",
+            "category": "Mapping/Geolocation",
+            "tags": ["google maps", "directions", "navigation", "location", "travel"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "origin": { "type": "string", "description": "Starting address or latitude/longitude." },
+                    "destination": { "type": "string", "description": "Destination address or latitude/longitude." },
+                    "mode": { "type": "string", "enum": ["driving", "walking", "bicycling", "transit"], "default": "driving" },
+                    "departure_time": { "type": "string", "format": "date-time", "description": "Optional departure time (ISO 8601). Use 'now' for current time." },
+                    "api_key": { "type": "string", "description": "Your Google Maps API key."}
+                },
+                "required": ["origin", "destination", "api_key"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "routes": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "summary": { "type": "string" },
+                                "distance_text": { "type": "string" },
+                                "distance_value": { "type": "integer" },
+                                "duration_text": { "type": "string" },
+                                "duration_value": { "type": "integer" },
+                                "steps": { "type": "array", "items": {"type": "object"} }
+                            }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "jenkins_start_build_v1.0",
+            "name": "Jenkins: Start Build",
+            "description": "Triggers a build for a specified job in Jenkins.",
+            "category": "DevOps",
+            "tags": ["jenkins", "ci/cd", "devops", "build automation", "developer tools"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "jenkins_url": { "type": "string", "format": "url", "description": "URL of the Jenkins instance." },
+                    "job_name": { "type": "string", "description": "Name of the Jenkins job to build." },
+                    "parameters": { "type": "object", "description": "Key-value pairs of build parameters (optional)." },
+                    "username": { "type": "string", "description": "Jenkins username for authentication."},
+                    "api_token": { "type": "string", "description": "Jenkins API token for authentication."}
+                },
+                "required": ["jenkins_url", "job_name", "username", "api_token"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "queue_item_url": { "type": "string", "format": "url", "description": "URL of the item in the Jenkins build queue." },
+                    "build_number": { "type": "integer", "description": "Build number if the job starts immediately." },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "intercom_send_message_to_user_v1.0",
+            "name": "Intercom: Send Message to User",
+            "description": "Sends a message to a user in Intercom.",
+            "category": "Customer Support",
+            "tags": ["intercom", "customer communication", "messaging", "support"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "user_id": { "type": "string", "description": "Intercom ID of the user. One of user_id or email is required." },
+                    "email": { "type": "string", "format": "email", "description": "Email of the user. One of user_id or email is required." },
+                    "message_body": { "type": "string", "description": "The content of the message to send." },
+                    "message_type": { "type": "string", "enum": ["chat", "email", "in_app"], "default": "chat" },
+                    "admin_id": { "type": "string", "description": "ID of the admin/agent sending the message."}
+                },
+                "required": ["message_body", "admin_id"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "message_id": { "type": "string" },
+                    "conversation_id": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "eventbrite_search_events_v1.0",
+            "name": "Eventbrite: Search Events",
+            "description": "Searches for events on Eventbrite.",
+            "category": "Event Management",
+            "tags": ["eventbrite", "events", "ticketing", "search", "entertainment"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "query": { "type": "string", "description": "Keyword search query." },
+                    "location_address": { "type": "string", "description": "Address or city to search events near." },
+                    "date_range_start": { "type": "string", "format": "date-time", "description": "Start date/time for event search (ISO 8601)." },
+                    "date_range_end": { "type": "string", "format": "date-time", "description": "End date/time for event search (ISO 8601)." },
+                    "sort_by": { "type": "string", "enum": ["date", "distance", "best"], "default": "best" },
+                    "api_key": { "type": "string", "description": "Your Eventbrite API key."}
+                },
+                "required": ["query", "api_key"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "events": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "id": { "type": "string" },
+                                "name": { "type": "string" },
+                                "url": { "type": "string", "format": "url" },
+                                "start_time": { "type": "string", "format": "date-time" },
+                                "end_time": { "type": "string", "format": "date-time" },
+                                "summary": { "type": "string" }
+                            }
+                        }
+                    },
+                    "pagination": { "type": "object" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "alpha_vantage_get_stock_quote_v1.0",
+            "name": "Alpha Vantage: Get Stock Quote",
+            "description": "Retrieves real-time stock quotes using Alpha Vantage API.",
+            "category": "Finance",
+            "tags": ["stock market", "finance", "alpha vantage", "quotes", "investment"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "symbol": { "type": "string", "description": "Stock symbol (e.g., 'AAPL')." },
+                    "api_key": { "type": "string", "description": "Your Alpha Vantage API key." }
+                },
+                "required": ["symbol", "api_key"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "quote_data": {
+                        "type": "object",
+                        "properties": {
+                            "symbol": { "type": "string" },
+                            "open": { "type": "string" },
+                            "high": { "type": "string" },
+                            "low": { "type": "string" },
+                            "price": { "type": "string" },
+                            "volume": { "type": "string" },
+                            "latest_trading_day": { "type": "string", "format": "date" },
+                            "previous_close": { "type": "string" },
+                            "change": { "type": "string" },
+                            "change_percent": { "type": "string" }
+                        }
+                    },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "notion_create_page_v1.0",
+            "name": "Notion: Create Page",
+            "description": "Creates a new page in Notion, optionally within a parent page or database.",
+            "category": "Productivity",
+            "tags": ["notion", "productivity", "documentation", "notes", "collaboration"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "parent_page_id": { "type": "string", "description": "ID of the parent page. Either parent_page_id or parent_database_id is required." },
+                    "parent_database_id": { "type": "string", "description": "ID of the parent database. Either parent_page_id or parent_database_id is required." },
+                    "title": { "type": "string", "description": "Title of the new page (used if parent_database_id and title property is not set in properties)." },
+                    "properties": { "type": "object", "description": "Object defining page properties, especially when creating in a database."},
+                    "content_blocks": { "type": "array", "items": { "type": "object" }, "description": "Array of Notion block objects for page content." }
+                },
+                "required": []
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "page_id": { "type": "string" },
+                    "page_url": { "type": "string", "format": "url" },
+                    "last_edited_time": { "type": "string", "format": "date-time" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "azure_blob_upload_file_v1.0",
+            "name": "Microsoft Azure Blob Storage: Upload File",
+            "description": "Uploads a file to Azure Blob Storage.",
+            "category": "File Management",
+            "tags": ["azure", "blob storage", "cloud storage", "file upload", "microsoft"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "connection_string": { "type": "string", "description": "Azure Storage account connection string." },
+                    "container_name": { "type": "string", "description": "Name of the blob container." },
+                    "local_file_path": { "type": "string", "description": "Path to the local file to upload." },
+                    "blob_name": { "type": "string", "description": "Name of the blob to create in the container." },
+                    "content_type": { "type": "string", "description": "Content type of the blob (e.g., 'image/jpeg', 'application/pdf')." }
+                },
+                "required": ["connection_string", "container_name", "local_file_path", "blob_name"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "blob_url": { "type": "string", "format": "url" },
+                    "e_tag": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "typeform_get_responses_v1.0",
+            "name": "Typeform: Get Form Responses",
+            "description": "Retrieves responses for a specific Typeform.",
+            "category": "Data Collection",
+            "tags": ["typeform", "surveys", "forms", "data collection", "feedback"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "form_id": { "type": "string", "description": "ID of the Typeform." },
+                    "since": { "type": "string", "format": "date-time", "description": "Retrieve responses submitted after this timestamp (ISO 8601) or a token from previous `until`." },
+                    "until": { "type": "string", "format": "date-time", "description": "Retrieve responses submitted before this timestamp (ISO 8601)." },
+                    "completed": { "type": "boolean", "description": "Filter for completed responses only." },
+                    "page_size": { "type": "integer", "default": 25, "description": "Number of responses per page." },
+                    "query": { "type": "string", "description": "Search query to filter responses."}
+                },
+                "required": ["form_id"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "total_items": { "type": "integer" },
+                    "items": { "type": "array", "items": { "type": "object", "description": "An array of Typeform responses." } },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "mailchimp_add_subscriber_v1.0",
+            "name": "Mailchimp: Add Subscriber to List",
+            "description": "Adds a new subscriber to a Mailchimp audience list.",
+            "category": "Marketing",
+            "tags": ["mailchimp", "email marketing", "newsletter", "crm", "marketing automation"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "list_id": { "type": "string", "description": "ID of the Mailchimp audience list." },
+                    "email_address": { "type": "string", "format": "email", "description": "Email address of the subscriber." },
+                    "status": { "type": "string", "enum": ["subscribed", "unsubscribed", "cleaned", "pending", "transactional"], "default": "subscribed" },
+                    "merge_fields": { "type": "object", "description": "Key-value pairs for merge fields (e.g., {'FNAME': 'John', 'LNAME': 'Doe'})." },
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Array of tags to add to the subscriber." }
+                },
+                "required": ["list_id", "email_address"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "subscriber_id": { "type": "string", "description": "The MD5 hash of the lowercase version of the email address." },
+                    "email_address": { "type": "string" },
+                    "status": { "type": "string" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "asana_create_task_v1.0",
+            "name": "Asana: Create Task",
+            "description": "Creates a new task in Asana within a project or workspace.",
+            "category": "Project Management",
+            "tags": ["asana", "project management", "task management", "collaboration"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "workspace_gid": { "type": "string", "description": "GID of the workspace. Either workspace_gid or project_gid is required if projects is not set." },
+                    "project_gid": {"type": "string", "description": "GID of the project to add the task to. If provided, task will be added to this project."},
+                    "projects": { "type": "array", "items": { "type": "string"}, "description": "Array of project GIDs to add this task to."},
+                    "name": { "type": "string", "description": "Name of the task." },
+                    "notes": { "type": "string", "description": "HTML notes for the task description." },
+                    "assignee_gid": { "type": "string", "description": "GID of the user to assign the task to." },
+                    "due_on": { "type": "string", "format": "date", "description": "Due date for the task (YYYY-MM-DD)." }
+                },
+                "required": ["name"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "task_gid": { "type": "string" },
+                    "task_url": { "type": "string", "format": "url" },
+                    "created_at": { "type": "string", "format": "date-time" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        },
+        {
+            "id": "quickbooks_create_invoice_v1.0",
+            "name": "Quickbooks: Create Invoice",
+            "description": "Creates a new invoice in QuickBooks Online.",
+            "category": "Accounting",
+            "tags": ["quickbooks", "accounting", "invoicing", "finance", "small business"],
+            "input_schema": {
+                "type": "object",
+                "properties": {
+                    "customer_ref_id": { "type": "string", "description": "ID of the customer in QuickBooks." },
+                    "line_items": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "description": { "type": "string" },
+                                "amount": { "type": "number" },
+                                "quantity": { "type": "number", "default": 1},
+                                "item_ref_id": { "type": "string", "description": "Reference to the Item in QuickBooks."}
+                            },
+                            "required": ["amount"]
+                        }
+                    },
+                    "due_date": { "type": "string", "format": "date", "description": "Due date of the invoice (YYYY-MM-DD)." },
+                    "email_invoice": { "type": "boolean", "default": false, "description": "Whether to email the invoice to the customer." },
+                    "customer_email": {"type": "string", "format": "email", "description": "Customer's email, required if email_invoice is true."}
+                },
+                "required": ["customer_ref_id", "line_items"]
+            },
+            "output_schema": {
+                "type": "object",
+                "properties": {
+                    "success": { "type": "boolean" },
+                    "invoice_id": { "type": "string" },
+                    "invoice_number": { "type": "string" },
+                    "total_amount": { "type": "number" },
+                    "error": { "type": "string" }
+                }
+            },
+            "version": "1.0.0"
+        }
+    ]
+}

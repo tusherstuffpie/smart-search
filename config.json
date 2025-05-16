@@ -1,18 +1,22 @@
 {
-    "openai": {
-        "api_key": "your-openai-api-key",
-        "model": "gpt-4-turbo-preview"
-    },
     "postgresql": {
-        "dsn": "postgres://user:password@localhost:5432/smartsearch?sslmode=disable"
+        "dsn": "postgresql://pguser:pgpass123@13.233.45.47:5455/pgvector_db?sslmode=disable"
     },
     "opensearch": {
-        "url": "http://localhost:9200",
+        "url": "http://13.233.45.47:9201",
         "username": "admin",
-        "password": "admin"
+        "password": "'Bddontknow@1234sd#2$'"
+    },
+    "ollama": {
+        "url": "http://localhost:11434",
+        "embed_model": "nomic-embed-text",
+        "chat_model": "qwen3:4b",
+        "options": {
+            "dimensionality": 768
+        }
     },
     "server": {
-        "port": 8080,
-        "host": "localhost"
+        "host": "localhost",
+        "port": 8080
     }
-} 
+}
