@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
 	"smartsearch/pkg/config"
 	"smartsearch/pkg/models"
 
@@ -29,8 +30,9 @@ func NewVectorStore(db *sql.DB, ollamaURL, model string, cfg *config.Config) *Ve
 func (vs *VectorStore) getEmbedding(ctx context.Context, text string) ([]float32, error) {
 	embedding, err := vs.ollamaClient.GetEmbedding(ctx, text)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get embedding: %w", err)
 	}
+	log.Printf("Generated embedding with %d dimensions", len(embedding))
 
 	// Reduce dimensions if needed
 	if len(embedding) > vs.targetDim {
@@ -39,8 +41,8 @@ func (vs *VectorStore) getEmbedding(ctx context.Context, text string) ([]float32
 
 	return embedding, nil
 }
-
 func (vs *VectorStore) Search(ctx context.Context, query string, k int) ([]models.SearchResult, error) {
+	log.Print("query: ", query)
 	// Get embedding for query
 	embedding, err := vs.getEmbedding(ctx, query)
 	if err != nil {
@@ -49,19 +51,22 @@ func (vs *VectorStore) Search(ctx context.Context, query string, k int) ([]model
 
 	// Convert embedding to pgvector format
 	vec := pgvector.NewVector(embedding)
+	log.Printf("Query vector created with %d dimensions", len(embedding))
 
-	// Search using cosine similarity
+	// Search for the k most similar tools by cosine distance
 	rows, err := vs.db.QueryContext(ctx, `
-        SELECT 
-            t.id, t.name, t.description, t.category, t.tags,
-            t.input_schema, t.output_schema, t.version,
-            t.created_at, t.updated_at,
-            1 - (t.embedding <=> $1) as similarity
-        FROM tools t
-        ORDER BY similarity DESC
-        LIMIT $2
-    `, vec, k)
+		SELECT 
+			t.id, t.name, t.description, t.category, t.tags,
+			t.input_schema, t.output_schema, t.version,
+			t.created_at, t.updated_at,
+			(t.embedding <=> $1::vector) AS distance
+		FROM tools t
+		WHERE t.embedding IS NOT NULL
+		ORDER BY distance ASC
+		LIMIT $2
+	`, vec, 5)
 	if err != nil {
+		log.Printf("Query error: %v", err)
 		return nil, fmt.Errorf("failed to query vector store: %w", err)
 	}
 	defer rows.Close()
@@ -69,17 +74,36 @@ func (vs *VectorStore) Search(ctx context.Context, query string, k int) ([]model
 	var results []models.SearchResult
 	for rows.Next() {
 		var tool models.Tool
-		var similarity float64
+		var distance float64
+		var inputSchemaJSON, outputSchemaJSON []byte
 		err := rows.Scan(
-			&tool.ID, &tool.Name, &tool.Description, &tool.Category, &tool.Tags,
-			&tool.InputSchema, &tool.OutputSchema, &tool.Version,
+			&tool.ID, &tool.Name, &tool.Description, &tool.Category, pq.Array(&tool.Tags),
+			&inputSchemaJSON, &outputSchemaJSON, &tool.Version,
 			&tool.CreatedAt, &tool.UpdatedAt,
-			&similarity,
+			&distance,
 		)
 		if err != nil {
+			log.Printf("Error scanning row: %v", err)
 			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 
+		// Unmarshal JSON schemas
+		if len(inputSchemaJSON) > 0 {
+			if err := json.Unmarshal(inputSchemaJSON, &tool.InputSchema); err != nil {
+				log.Printf("Error unmarshaling input schema: %v", err)
+				return nil, fmt.Errorf("failed to unmarshal input schema: %w", err)
+			}
+		}
+		if len(outputSchemaJSON) > 0 {
+			if err := json.Unmarshal(outputSchemaJSON, &tool.OutputSchema); err != nil {
+				log.Printf("Error unmarshaling output schema: %v", err)
+				return nil, fmt.Errorf("failed to unmarshal output schema: %w", err)
+			}
+		}
+
+		// Convert distance to similarity score (1 - distance)
+		similarity := 1 - distance
+		log.Printf("Found tool: %s with distance: %f, similarity: %f", tool.Name, distance, similarity)
 		results = append(results, models.SearchResult{
 			Tool:        tool,
 			VectorScore: similarity,
@@ -87,6 +111,12 @@ func (vs *VectorStore) Search(ctx context.Context, query string, k int) ([]model
 		})
 	}
 
+	if err = rows.Err(); err != nil {
+		log.Printf("Error iterating rows: %v", err)
+		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	log.Printf("Total results found: %d", len(results))
 	return results, nil
 }
 

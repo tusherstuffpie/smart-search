@@ -5,10 +5,11 @@
     "opensearch": {
         "url": "http://13.233.45.47:9201",
         "username": "admin",
-        "password": "'Bddontknow@1234sd#2$'"
+        "password": "'Bddontknow@1234sd#2$'",
+        "index": "tools"
     },
     "ollama": {
-        "url": "http://localhost:11434",
+        "url": "http://localhost:11434/v1",
         "embed_model": "nomic-embed-text",
         "chat_model": "qwen3:4b",
         "options": {

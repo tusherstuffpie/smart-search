@@ -1,17 +1,18 @@
 package ollama
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
+	"strings"
+
+	"github.com/openai/openai-go"
+	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/shared"
 )
 
 type Client struct {
-	url   string
-	model string
+	client openai.Client
+	model  string
 }
 
 type ChatMessage struct {
@@ -41,83 +42,99 @@ type EmbeddingResponse struct {
 }
 
 func NewClient(url, model string) *Client {
+	client := openai.NewClient(
+		option.WithBaseURL(url),
+		option.WithAPIKey("ollama"),
+	)
 	return &Client{
-		url:   url,
-		model: model,
+		client: client,
+		model:  model,
+	}
+}
+
+func (c *Client) GetChatCompletion(ctx context.Context, messages []ChatMessage) (string, error) {
+	// Convert our ChatMessage format to OpenAI's format
+	openAIMessages := make([]openai.ChatCompletionMessageParamUnion, len(messages))
+	for i, msg := range messages {
+		openAIMessages[i] = openai.ChatCompletionMessageParamUnion{
+			OfUser: &openai.ChatCompletionUserMessageParam{
+				Content: openai.ChatCompletionUserMessageParamContentUnion{
+					OfString: openai.String(msg.Content),
+				},
+			},
+		}
+	}
+
+	// Create a channel to collect the streamed response
+	responseChan := make(chan string)
+	errorChan := make(chan error)
+
+	// Start streaming in a goroutine
+	go func() {
+		stream := c.client.Chat.Completions.NewStreaming(
+			ctx,
+			openai.ChatCompletionNewParams{
+				Messages: openAIMessages,
+				Model:    shared.ChatModel(c.model),
+			},
+		)
+
+		var fullResponse strings.Builder
+		for stream.Next() {
+			chunk := stream.Current()
+			if len(chunk.Choices) > 0 {
+				content := chunk.Choices[0].Delta.Content
+				if content != "" {
+					fullResponse.WriteString(content)
+				}
+			}
+		}
+
+		if err := stream.Err(); err != nil {
+			errorChan <- fmt.Errorf("error during streaming: %w", err)
+			return
+		}
+
+		responseChan <- fullResponse.String()
+	}()
+
+	// Wait for either the response or an error
+	select {
+	case response := <-responseChan:
+		if response == "" {
+			return "", fmt.Errorf("empty response from OpenAI")
+		}
+		return response, nil
+	case err := <-errorChan:
+		return "", err
+	case <-ctx.Done():
+		return "", ctx.Err()
 	}
 }
 
 func (c *Client) GetEmbedding(ctx context.Context, text string) ([]float32, error) {
-	reqBody := EmbeddingRequest{
-		Model:  c.model,
-		Prompt: text,
-	}
-
-	jsonData, err := json.Marshal(reqBody)
+	resp, err := c.client.Embeddings.New(
+		ctx,
+		openai.EmbeddingNewParams{
+			Model: openai.EmbeddingModel(c.model),
+			Input: openai.EmbeddingNewParamsInputUnion{
+				OfString: openai.String(text),
+			},
+		},
+	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal request: %w", err)
+		return nil, fmt.Errorf("failed to get embedding: %w", err)
 	}
 
-	req, err := http.NewRequestWithContext(ctx, "POST", c.url+"/api/embeddings", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ollama API error: %s - %s", resp.Status, string(body))
+	if len(resp.Data) == 0 {
+		return nil, fmt.Errorf("no embedding data in response")
 	}
 
-	var embeddingResp EmbeddingResponse
-	if err := json.NewDecoder(resp.Body).Decode(&embeddingResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	// Convert []float64 to []float32
+	embedding := make([]float32, len(resp.Data[0].Embedding))
+	for i, v := range resp.Data[0].Embedding {
+		embedding[i] = float32(v)
 	}
 
-	return embeddingResp.Embedding, nil
-}
-
-func (c *Client) GetChatCompletion(ctx context.Context, messages []ChatMessage) (string, error) {
-	reqBody := ChatRequest{
-		Model:    c.model,
-		Messages: messages,
-		Format:   "json",
-	}
-
-	jsonData, err := json.Marshal(reqBody)
-	if err != nil {
-		return "", fmt.Errorf("failed to marshal request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, "POST", c.url+"/api/chat", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		return "", fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("ollama API error: %s - %s", resp.Status, string(body))
-	}
-
-	var chatResp ChatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	return chatResp.Message.Content, nil
+	return embedding, nil
 } 

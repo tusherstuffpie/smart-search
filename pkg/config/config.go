@@ -13,6 +13,7 @@ type Config struct {
 		URL      string `json:"url"`
 		Username string `json:"username"`
 		Password string `json:"password"`
+		Index    string `json:"index"`
 	} `json:"opensearch"`
 	Ollama struct {
 		URL        string `json:"url"`

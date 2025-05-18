@@ -1,0 +1,14 @@
+{
+    "sqltools.connections": [
+        {
+            "previewLimit": 50,
+            "server": "13.233.45.47",
+            "port": 5455,
+            "askForPassword": true,
+            "driver": "PostgreSQL",
+            "name": "pguser",
+            "database": "pgvector_db",
+            "username": "pguser"
+        }
+    ]
+}

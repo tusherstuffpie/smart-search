@@ -28,7 +28,12 @@ func SeedDatabase(
 ) error {
 	// Initialize vector store and search client
 	vectorStore := vector.NewVectorStore(db, cfg.Ollama.URL, cfg.Ollama.EmbedModel, cfg)
-	searchClient := search.NewOpenSearchClient(opensearchClient, "tools")
+	searchClient := search.NewOpenSearchClient(opensearchClient, cfg.OpenSearch.Index)
+
+	// Initialize OpenSearch index
+	if err := searchClient.CreateOrUpdateIndex(ctx); err != nil {
+		return fmt.Errorf("failed to initialize OpenSearch index: %w", err)
+	}
 
 	// Read seed data
 	data, err := os.ReadFile(filepath.Join("seed", "data", "tools.json"))

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"smartsearch/pkg/config"
+	"smartsearch/pkg/search"
 	"smartsearch/seed"
 
 	_ "github.com/lib/pq"
@@ -34,6 +35,12 @@ func main() {
 	opensearchClient, err := opensearch.NewClient(opensearchConfig)
 	if err != nil {
 		log.Fatalf("Failed to create OpenSearch client: %v", err)
+	}
+
+	// Initialize OpenSearch index with proper settings
+	osClient := search.NewOpenSearchClient(opensearchClient, cfg.OpenSearch.Index)
+	if err := osClient.CreateOrUpdateIndex(context.Background()); err != nil {
+		log.Fatalf("Failed to initialize OpenSearch index: %v", err)
 	}
 
 	// Run seeding

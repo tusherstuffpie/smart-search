@@ -3,10 +3,14 @@ package search
 import (
 	"context"
 	"fmt"
+	"log"
 	"smartsearch/internal/query"
 	"smartsearch/internal/vector"
 	"smartsearch/pkg/models"
+	"sort"
 	"time"
+
+	"golang.org/x/sync/errgroup"
 )
 
 type Service struct {
@@ -30,51 +34,82 @@ func NewService(
 func (s *Service) Search(ctx context.Context, req models.SearchRequest) (*models.SearchResponse, error) {
 	startTime := time.Now()
 
-	// 1. Query Understanding
-	understanding, err := s.queryEngine.UnderstandQuery(ctx, req.Query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to understand query: %w", err)
+	// Verify OpenSearch index settings
+	if err := s.searchClient.VerifyIndexSettings(ctx); err != nil {
+		log.Printf("Warning: OpenSearch index verification failed: %v", err)
 	}
 
-	// 2. Expand query
-	expandedQueries, err := s.queryEngine.ExpandQuery(ctx, req.Query)
-	if err != nil {
-		return nil, fmt.Errorf("failed to expand query: %w", err)
+	// Calculate k value
+	k := req.TopK * 2
+	if k < 1 {
+		k = 10
 	}
 
-	// 3. Parallel search using both vector and keyword search
-	var allResults []models.SearchResult
-	for _, expandedQuery := range expandedQueries {
-		vectorResults, err := s.vectorStore.Search(ctx, expandedQuery, req.TopK*2)
+	// Create error group for parallel execution
+	g, ctx := errgroup.WithContext(ctx)
+	var vectorResults, keywordResults []models.SearchResult
+
+	// Run vector search
+	g.Go(func() error {
+		results, err := s.vectorStore.Search(ctx, req.Query, k)
 		if err != nil {
-			return nil, fmt.Errorf("failed to perform vector search: %w", err)
+			return fmt.Errorf("vector search failed: %w", err)
 		}
-		allResults = append(allResults, vectorResults...)
+		vectorResults = results
+		return nil
+	})
 
-		keywordResults, err := s.searchClient.Search(ctx, expandedQuery, req.TopK*2)
+	// Run keyword search
+	g.Go(func() error {
+		results, err := s.searchClient.Search(ctx, req.Query, k)
 		if err != nil {
-			return nil, fmt.Errorf("failed to perform keyword search: %w", err)
+			return fmt.Errorf("keyword search failed: %w", err)
 		}
-		allResults = append(allResults, keywordResults...)
+		keywordResults = results
+		return nil
+	})
+
+	// Wait for both searches to complete
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
-	// 4. Merge and deduplicate results
-	mergedResults := s.mergeResults(allResults[:len(allResults)/2], allResults[len(allResults)/2:])
+	// Merge and deduplicate results
+	mergedResults := s.mergeResults(vectorResults, keywordResults)
+	log.Printf("Merged results count: %d", len(mergedResults))
 
-	// 5. Apply filters from query understanding
-	filteredResults := s.applyFilters(mergedResults, understanding.Filters)
+	// Apply minimum score threshold
+	minScore := req.MinScore
+	if minScore <= 0 {
+		minScore = 0.3 // Default minimum score threshold
+	}
+	finalResults := s.applyScoreThreshold(mergedResults, minScore)
+	log.Printf("Results after score threshold: %d", len(finalResults))
 
-	// 6. Apply minimum score threshold
-	finalResults := s.applyScoreThreshold(filteredResults, req.MinScore)
+	// Limit to top K results
+	if len(finalResults) > k {
+		finalResults = finalResults[:k]
+	}
 
-	// 7. Limit to top K results
-	if len(finalResults) > req.TopK {
-		finalResults = finalResults[:req.TopK]
+	// Create simplified results with only required fields
+	simplifiedResults := make([]models.SearchResult, len(finalResults))
+	for i, result := range finalResults {
+		simplifiedResults[i] = models.SearchResult{
+			Tool: models.Tool{
+				ID:          result.Tool.ID,
+				Name:        result.Tool.Name,
+				Description: result.Tool.Description,
+			},
+			Score:         result.Score,
+			VectorScore:   result.VectorScore,
+			KeywordScore:  result.KeywordScore,
+			RerankedScore: result.RerankedScore,
+		}
 	}
 
 	return &models.SearchResponse{
-		Results: finalResults,
-		Total:   len(finalResults),
+		Results: simplifiedResults,
+		Total:   len(simplifiedResults),
 		Time:    float64(time.Since(startTime).Milliseconds()),
 	}, nil
 }
@@ -85,6 +120,7 @@ func (s *Service) mergeResults(vectorResults, keywordResults []models.SearchResu
 	
 	// Process vector results first
 	for _, result := range vectorResults {
+		result.VectorScore = result.Score // Store vector score separately
 		seen[result.Tool.ID] = result
 	}
 	
@@ -92,62 +128,29 @@ func (s *Service) mergeResults(vectorResults, keywordResults []models.SearchResu
 	for _, result := range keywordResults {
 		if existing, ok := seen[result.Tool.ID]; ok {
 			// Update scores if tool was found in both searches
-			existing.KeywordScore = result.KeywordScore
-			existing.Score = (existing.VectorScore + result.KeywordScore) / 2
+			existing.KeywordScore = result.Score
+			// Combine scores with 70% weight to vector and 30% to keyword
+			existing.Score = (existing.VectorScore * 0.7) + (result.Score * 0.3)
 			seen[result.Tool.ID] = existing
 		} else {
+			result.KeywordScore = result.Score
+			result.VectorScore = 0
 			seen[result.Tool.ID] = result
 		}
 	}
 	
-	// Convert map to slice
+	// Convert map to slice and sort by score
 	results := make([]models.SearchResult, 0, len(seen))
 	for _, result := range seen {
 		results = append(results, result)
 	}
 	
+	// Sort results by score in descending order
+	sort.Slice(results, func(i, j int) bool {
+		return results[i].Score > results[j].Score
+	})
+	
 	return results
-}
-
-func (s *Service) applyFilters(results []models.SearchResult, filters map[string]interface{}) []models.SearchResult {
-	if len(filters) == 0 {
-		return results
-	}
-
-	filtered := make([]models.SearchResult, 0, len(results))
-	for _, result := range results {
-		if s.matchesFilters(result, filters) {
-			filtered = append(filtered, result)
-		}
-	}
-	return filtered
-}
-
-func (s *Service) matchesFilters(result models.SearchResult, filters map[string]interface{}) bool {
-	for key, value := range filters {
-		switch key {
-		case "category":
-			if cat, ok := value.(string); ok && result.Tool.Category != cat {
-				return false
-			}
-		case "tags":
-			if tags, ok := value.([]string); ok {
-				found := false
-				for _, tag := range tags {
-					for _, resultTag := range result.Tool.Tags {
-						if tag == resultTag {
-							found = true
-							break
-						}
-					}
-				}
-				if !found {
-					return false
-				}
-			}
-		}
-	}
-	return true
 }
 
 func (s *Service) applyScoreThreshold(results []models.SearchResult, minScore float64) []models.SearchResult {
